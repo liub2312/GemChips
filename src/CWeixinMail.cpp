@@ -260,8 +260,10 @@ struct CWeixinMail::Impl {
             << cfg.host << ":" << cfg.port << "/";
         if (!mailbox.empty()) {
             // URL-encode 空格为 %20（简单处理）
-            for (char c : mailbox)
-                oss << (c == ' ' ? "%20" : std::string(1, c));
+            for (char c : mailbox) {
+                if (c == ' ') oss << "%20";
+                else          oss << c;
+            }
         }
         if (!cmd.empty()) oss << "?" << cmd;
         return oss.str();
@@ -333,7 +335,7 @@ struct CWeixinMail::Impl {
             std::sregex_iterator it2(buf.begin(), buf.end(), re2), end2;
             for (; it2 != end2; ++it2) {
                 std::string mb = (*it2)[1];
-                if (mb.front() == '"') mb = mb.substr(1, mb.size()-2);
+                if (!mb.empty() && mb.front() == '"') mb = mb.substr(1, mb.size()-2);
                 mailboxes.push_back(mb);
             }
         }
@@ -529,8 +531,9 @@ bool CWeixinMail::Init(const MailConfig& config)
         impl_->last_error = "username and password are required";
         return false;
     }
-    // 初始化 libcurl（全局，幂等）
-    curl_global_init(CURL_GLOBAL_DEFAULT);
+    // 初始化 libcurl（全局，线程安全地只调用一次）
+    static std::once_flag curl_init_flag;
+    std::call_once(curl_init_flag, []{ curl_global_init(CURL_GLOBAL_DEFAULT); });
     // 测试连接：拉取目录列表
     return impl_->fetchMailboxList();
 }

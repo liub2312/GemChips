@@ -19,14 +19,13 @@ target_include_directories(weixinmail
         $<INSTALL_INTERFACE:include>
 )
 
+find_package(Threads REQUIRED)
+
 target_link_libraries(weixinmail
     PRIVATE
         CURL::libcurl
         Threads::Threads
 )
-
-find_package(Threads REQUIRED)
-target_link_libraries(weixinmail PRIVATE Threads::Threads)
 
 set_target_properties(weixinmail PROPERTIES
     VERSION   ${PROJECT_VERSION}
