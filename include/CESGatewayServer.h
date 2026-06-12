@@ -19,7 +19,6 @@ public:
         std::wstring query;
         std::wstring contentType;
         std::wstring body;
-        std::unordered_map<std::wstring, std::wstring> headers;
     };
 
     struct Response {
@@ -35,6 +34,7 @@ public:
     using JsonHandler = std::function<Response(Request const&, winrt::Windows::Data::Json::JsonObject const&)>;
 #endif
 
+    // workerCount == 0 uses std::thread::hardware_concurrency() as the default.
     explicit CESGatewayServer(std::wstring urlPrefix, unsigned int workerCount = 0);
     ~CESGatewayServer();
 
@@ -57,4 +57,3 @@ private:
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };
-

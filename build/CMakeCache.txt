@@ -122,7 +122,7 @@ CMAKE_PROJECT_DESCRIPTION:STATIC=
 CMAKE_PROJECT_HOMEPAGE_URL:STATIC=
 
 //Value Computed by CMake
-CMAKE_PROJECT_NAME:STATIC=GemChips
+CMAKE_PROJECT_NAME:STATIC=TGImageTrans
 
 //Path to a program.
 CMAKE_RANLIB:FILEPATH=/usr/bin/ranlib
@@ -197,6 +197,15 @@ GemChips_IS_TOP_LEVEL:STATIC=ON
 
 //Value Computed by CMake
 GemChips_SOURCE_DIR:STATIC=/home/runner/work/GemChips/GemChips/liub2312/GemChips
+
+//Value Computed by CMake
+TGImageTrans_BINARY_DIR:STATIC=/home/runner/work/GemChips/GemChips/liub2312/GemChips/build
+
+//Value Computed by CMake
+TGImageTrans_IS_TOP_LEVEL:STATIC=ON
+
+//Value Computed by CMake
+TGImageTrans_SOURCE_DIR:STATIC=/home/runner/work/GemChips/GemChips/liub2312/GemChips
 
 
 ########################
