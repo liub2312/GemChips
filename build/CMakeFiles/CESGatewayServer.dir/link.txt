@@ -1,0 +1,2 @@
+/usr/bin/ar qc libCESGatewayServer.a CMakeFiles/CESGatewayServer.dir/src/CESGatewayServer.cpp.o
+/usr/bin/ranlib libCESGatewayServer.a
