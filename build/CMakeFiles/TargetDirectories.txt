@@ -1,0 +1,3 @@
+/home/runner/work/GemChips/GemChips/liub2312/GemChips/build/CMakeFiles/CESGatewayServer.dir
+/home/runner/work/GemChips/GemChips/liub2312/GemChips/build/CMakeFiles/edit_cache.dir
+/home/runner/work/GemChips/GemChips/liub2312/GemChips/build/CMakeFiles/rebuild_cache.dir
