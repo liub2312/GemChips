@@ -12,6 +12,7 @@
 
 namespace {
 constexpr std::wstring_view kPoliciesRoot = L"SOFTWARE\\Policies";
+constexpr unsigned long kGpUpdateTimeoutMs = 5u * 60u * 1000u;
 
 void SetError(std::wstring const& message, std::wstring* errorMessage) {
     if (errorMessage != nullptr) {
@@ -48,6 +49,10 @@ bool StartsWithCaseInsensitive(std::wstring const& text, std::wstring_view prefi
         }
     }
     return true;
+}
+
+bool IsPolicyRootPath(std::wstring const& path) {
+    return StartsWithCaseInsensitive(path, kPoliciesRoot) && path.size() == kPoliciesRoot.size();
 }
 
 #ifdef _WIN32
@@ -225,12 +230,19 @@ bool RunGpUpdateTarget(wchar_t const* target, std::wstring* errorMessage) {
         return false;
     }
 
-    auto const waitResult = WaitForSingleObject(processInfo.hProcess, INFINITE);
+    auto const waitResult = WaitForSingleObject(processInfo.hProcess, kGpUpdateTimeoutMs);
     if (waitResult != WAIT_OBJECT_0) {
+        if (waitResult == WAIT_TIMEOUT) {
+            TerminateProcess(processInfo.hProcess, ERROR_TIMEOUT);
+        }
         auto const waitError = waitResult == WAIT_FAILED ? GetLastError() : ERROR_GEN_FAILURE;
         CloseHandle(processInfo.hThread);
         CloseHandle(processInfo.hProcess);
-        SetError(L"Failed while waiting for gpupdate to finish: " + FormatWindowsError(waitError), errorMessage);
+        if (waitResult == WAIT_TIMEOUT) {
+            SetError(L"gpupdate timed out for target " + std::wstring(target) + L".", errorMessage);
+        } else {
+            SetError(L"Failed while waiting for gpupdate to finish: " + FormatWindowsError(waitError), errorMessage);
+        }
         return false;
     }
 
@@ -367,6 +379,10 @@ bool CESLocalGroupPolicyManager::DeletePolicyValue(
     std::wstring* errorMessage) const {
 #ifdef _WIN32
     auto keyPath = BuildPolicyKeyPath(relativeKeyPath);
+    if (IsPolicyRootPath(keyPath)) {
+        SetError(L"Refusing to delete values directly from the root policy container.", errorMessage);
+        return false;
+    }
     HKEY key = nullptr;
     auto result = RegOpenKeyExW(ResolveRootKey(scope), keyPath.c_str(), 0, KEY_SET_VALUE, &key);
     if (result != ERROR_SUCCESS) {
@@ -393,6 +409,10 @@ bool CESLocalGroupPolicyManager::DeletePolicyValue(
 bool CESLocalGroupPolicyManager::DeletePolicyKey(Scope scope, std::wstring const& relativeKeyPath, std::wstring* errorMessage) const {
 #ifdef _WIN32
     auto keyPath = BuildPolicyKeyPath(relativeKeyPath);
+    if (IsPolicyRootPath(keyPath)) {
+        SetError(L"Refusing to delete the root policy container.", errorMessage);
+        return false;
+    }
     auto result = RegDeleteTreeW(ResolveRootKey(scope), keyPath.c_str());
     if (result != ERROR_SUCCESS) {
         SetError(L"Failed to delete policy key: " + FormatWindowsError(result), errorMessage);
