@@ -225,15 +225,24 @@ bool RunGpUpdateTarget(wchar_t const* target, std::wstring* errorMessage) {
         return false;
     }
 
-    WaitForSingleObject(processInfo.hProcess, INFINITE);
+    auto const waitResult = WaitForSingleObject(processInfo.hProcess, INFINITE);
+    if (waitResult != WAIT_OBJECT_0) {
+        auto const waitError = waitResult == WAIT_FAILED ? GetLastError() : ERROR_GEN_FAILURE;
+        CloseHandle(processInfo.hThread);
+        CloseHandle(processInfo.hProcess);
+        SetError(L"Failed while waiting for gpupdate to finish: " + FormatWindowsError(waitError), errorMessage);
+        return false;
+    }
 
     DWORD exitCode = 0;
     bool ok = GetExitCodeProcess(processInfo.hProcess, &exitCode) != 0 && exitCode == 0;
     if (!ok) {
         if (exitCode == 0) {
-            exitCode = GetLastError();
+            auto const queryError = GetLastError();
+            SetError(L"Failed to query gpupdate exit code: " + FormatWindowsError(queryError), errorMessage);
+        } else {
+            SetError(L"gpupdate failed for target " + std::wstring(target) + L" with exit code " + std::to_wstring(exitCode) + L".", errorMessage);
         }
-        SetError(L"gpupdate failed for target " + std::wstring(target) + L": " + FormatWindowsError(exitCode), errorMessage);
     }
 
     CloseHandle(processInfo.hThread);
