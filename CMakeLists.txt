@@ -4,6 +4,7 @@ project(TGImageTrans LANGUAGES CXX)
 
 add_library(CESGatewayServer
     src/CESGatewayServer.cpp
+    src/CESLocalGroupPolicyManager.cpp
 )
 
 target_include_directories(CESGatewayServer
