@@ -233,7 +233,13 @@ bool RunGpUpdateTarget(wchar_t const* target, std::wstring* errorMessage) {
     auto const waitResult = WaitForSingleObject(processInfo.hProcess, kGpUpdateTimeoutMs);
     if (waitResult != WAIT_OBJECT_0) {
         if (waitResult == WAIT_TIMEOUT) {
-            TerminateProcess(processInfo.hProcess, ERROR_TIMEOUT);
+            if (!TerminateProcess(processInfo.hProcess, ERROR_TIMEOUT)) {
+                auto const terminateError = GetLastError();
+                CloseHandle(processInfo.hThread);
+                CloseHandle(processInfo.hProcess);
+                SetError(L"gpupdate timed out and could not be terminated: " + FormatWindowsError(terminateError), errorMessage);
+                return false;
+            }
         }
         auto const waitError = waitResult == WAIT_FAILED ? GetLastError() : ERROR_GEN_FAILURE;
         CloseHandle(processInfo.hThread);
@@ -278,6 +284,10 @@ std::wstring CESLocalGroupPolicyManager::BuildPolicyKeyPath(std::wstring relativ
 bool CESLocalGroupPolicyManager::SetPolicyValue(Scope scope, PolicyValue const& value, std::wstring* errorMessage) const {
 #ifdef _WIN32
     auto keyPath = BuildPolicyKeyPath(value.keyPath);
+    if (IsPolicyRootPath(keyPath)) {
+        SetError(L"Refusing to write values directly to the root policy container.", errorMessage);
+        return false;
+    }
     HKEY key = nullptr;
     auto result = RegCreateKeyExW(
         ResolveRootKey(scope),
@@ -481,6 +491,7 @@ bool CESLocalGroupPolicyManager::EnumeratePolicyValues(
             dataBuffer.data(),
             &dataLength);
         if (result != ERROR_SUCCESS) {
+            values.clear();
             RegCloseKey(key);
             SetError(L"Failed to enumerate policy values: " + FormatWindowsError(result), errorMessage);
             return false;
